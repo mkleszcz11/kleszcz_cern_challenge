@@ -20,7 +20,7 @@ Default states explanation:
 - 
 
 3. Error prriorites:
-This should be defined as we can imagine, for instance, the following scenario:
+Error prriorites should be defined as we can imagine, the following scenario (just an example):
     1. Fluid level is too low, alarm is activated
     2. Something weird happens and we have to, for whatever reason, stop execution and open the gate. Low level alarm (with no gate opening) cannot override the emergency stop behavior (shut everything down and open a gate).
 
@@ -31,6 +31,14 @@ Error priorities ranked from highest to lowest - this list is subjective and is 
 - Tank Level Too Low Alarm
 - Tank Teperature Too Low Alarm
 - Tank Discharging Door Open Alarm
+
+4. `Immidiate response` interpretation. For alarm A0 instruction says: `Initiates an immediate stop of the system to prevent overflow.`. In the provided testcase we are putting a `True` value as High high level reading and then waiting a second, then asserting that the system is stopped. I assumed the same for the other alarms, especially `emergency stop`, instead of trying to make a paraller task that would be checking the alarms and stopping the system, disregarding the cycle time. I assumed it would be a bit of overkill.
+
+5. Test design.
+In normal scenario I would propably put all alarm tests in one file as concept for each test is similar, but for readability I decided to split them into separate files.
+
+
+6. Emergency button is set via `set_object_value`, not `set_object_pulse` to simulate a standard emergency stop (has to be deactivated again with `set_object_value`).
 
 # How to run the code
 1. Activate the virtual environment:
@@ -51,13 +59,7 @@ pytest tests/test_aa_grafcet.py
 # Other notes.
 1. I have not really utilised parallel programining in this task, as I think it is not really that needed. Project is rather small and doing it in a simplest way looks ok. I can imagine utilising asyncio if we would have to fetch a lot of sensors data in parallel, but since we have only 10 sensors it would just add unnecessary complexity (subjective). Another reason would be to simulate a gate movement, I don't have a state where sensors shows that the gate is open, but the motor is turned on (this state would exist in a real world), but again, I think it would be an overthinking.
 
-# TODO 
-I had a bit of a trouble defining how I want my emergency stop to work. In real life I assume it would physically cut the power to the pumps and actuators and halt a system no matter what PLC is doing. 
-
-I used it though for an emergency stop as a separate corutine
-<!-- Same goes for the emergency stop. I was considering adding separate task only for checking it an immidaitely executing the assigned corutine, but in reality, as far as I am aware, PLC would also have to acknowledge an emergency stop and react. Especially, in the case where predefined set_object_pulse method holds a button 0.5s. -->
-
-2. I am aware the alarm definition system is not the best. I decided to keep the numbers 0-5 as they are listed in the Instruction.
+2. I had a bit of a trouble deciding how I want my emergency stop to work. In real life I assume it would physically cut the power to the pumps and actuators and halt a system no matter what PLC is doing. Here I just wired it to the cycle time (point 4 in the assumptions).
 
 3. I would love to share links to a few public projects, that are somehow related to this task.
 -  Simulated OPC UA elevator controller. I have been working recently with OPC devices at my work. Here is the link to our public simulator, which can simulate vehicles (unrelated to this) and opc elevator, which is actually a very very simple version of what is this challange about. Goal of this simulator is actually not to emulate the actual plc behavious, thus implementation is so simple.

@@ -1,3 +1,21 @@
+##############################
+# IMPORTANT NOTE - same as for default_test_alarm_0.py
+#
+# Name does not start with test_ on purpose.
+#
+# This test is just to validate, that reference
+# by alarm number is still working in case if my code will
+# be passed to some sort of automatic benchmarking.
+#
+# This test works only if the simulator was just started, i prefer to
+# run all of them in one go, without stopping the simulator in between.
+#
+# Tranistions are not tested in detail in test_aa_grafcet.py.
+# They are also tested in all alarms tests, but this is not
+# the main focus of these tests.
+##############################
+
+
 import asyncio
 import pytest
 import pytest_asyncio

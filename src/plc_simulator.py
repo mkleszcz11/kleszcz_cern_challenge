@@ -3,40 +3,39 @@ from asyncua import Server, ua
 import asyncio
 
 from src.plc_io_definitions import DigitalInputs, AnalogInputs, DigitalOutputs
-from src.plc_utils import Steps, Transitions, PLCCommonOperations
-from src.plc_alarm_logic import Alarms
+from src.plc_utils import Steps, Transitions, PLCCommonOperations, Alarms
 
 class PLCSimulator:
     def __init__(self):
         # Constants, moved from the execute_control_logic method to make it more readable
-        self.CYCLE_TIME = 0.2 # Time interval for cyclic execution (in seconds)
-        self.DESIRED_TEMPERATURE = 45.0
-        self.MAX_TEMPERATURE = 80.0
-        self.MIN_TEMPERATURE = 10.0
+        self.CYCLE_TIME = 0.05          # Time interval for cyclic execution [seconds]
+        self.DESIRED_TEMPERATURE = 45.0 # Desired temperature for the heating system [Celsius]
+        self.MAX_TEMPERATURE = 80.0     # Max temperature above which the heating system should be stopped [Celsius]
+        self.MIN_TEMPERATURE = 10.0     # Min temperature below which the heating system should be stopped [Celsius]
 
         # Initialize input/output and alarm registers. Complete the registers with the needed signals
         self.digital_inputs = {
-            DigitalInputs.START_BUTTON: False, # Start button, True when pressed, False otherwise
-            DigitalInputs.RUN_BUTTON: False, # Run button, True when pressed, False otherwise
-            DigitalInputs.STOP_BUTTON: False, # Stop button, True when pressed, False otherwise
-            DigitalInputs.ES_BUTTON: False, # Emergency button, True when pressed, False otherwise
-            DigitalInputs.RST_BUTTON: False, # Reset button, True when pressed, False otherwise
-            DigitalInputs.LL_LVL_SENSOR: False, # Low low level sensor, True when water detected, False otherwise
-            DigitalInputs.L_LVL_SENSOR: False, # Low level sensor, True when water detected, False otherwise
-            DigitalInputs.H_LVL_SENSOR: False, # High level sensor, True when water detected, False otherwise
-            DigitalInputs.HH_LVL_SENSOR: False, # High high level sensor, True when water detected, False otherwise
-            DigitalInputs.DISCHARG_GT_CLOSED: True  # Tank discharging gate sensor. True when closed, False otherwise
+            DigitalInputs.START_BUTTON: False,          # Start button, True when pressed, False otherwise
+            DigitalInputs.RUN_BUTTON: False,            # Run button, True when pressed, False otherwise
+            DigitalInputs.STOP_BUTTON: False,           # Stop button, True when pressed, False otherwise
+            DigitalInputs.ES_BUTTON: False,             # Emergency button, True when pressed, False otherwise
+            DigitalInputs.RST_BUTTON: False,            # Reset button, True when pressed, False otherwise
+            DigitalInputs.LL_LVL_SENSOR: False,         # Low low level sensor, True when water detected, False otherwise
+            DigitalInputs.L_LVL_SENSOR: False,          # Low level sensor, True when water detected, False otherwise
+            DigitalInputs.H_LVL_SENSOR: False,          # High level sensor, True when water detected, False otherwise
+            DigitalInputs.HH_LVL_SENSOR: False,         # High high level sensor, True when water detected, False otherwise
+            DigitalInputs.DISCHARGING_GATE_CLOSED: True # Tank discharging gate sensor. True when closed, False otherwise
             }
 
         self.analog_inputs = {
-            AnalogInputs.TEMPERATURE_SENSOR: 20.0, # Temperature sensor, [Celsius]
+            AnalogInputs.TEMPERATURE_SENSOR: 20.0 # Temperature sensor, [Celsius]
             }
 
         self.digital_outputs = {
-            DigitalOutputs.FILLING_VALVE_OPEN: False, # Filling system. True when on, False otherwise
+            DigitalOutputs.FILLING_VALVE_OPEN: False,     # Filling system. True when on, False otherwise
             DigitalOutputs.DISCHARGING_VALVE_OPEN: False, # Tank discharging valve (normal operation). True when open, False otherwise
-            DigitalOutputs.HEATING_ON: False, # Heating system. True when on, False otherwise
-            DigitalOutputs.DISCHARGING_GATE_OPEN: True   # Tank discharging gate (complete discharging). True when closed, False otherwise.
+            DigitalOutputs.HEATING_ON: False,             # Heating system. True when on, False otherwise
+            DigitalOutputs.DISCHARGING_GATE_CLOSE: True  # Tank discharging gate (complete discharging). True when closed, False otherwise.
             }
 
         # Alarms have Active, UnAck ("Unacknowledged"), and Status attributes
@@ -65,20 +64,20 @@ class PLCSimulator:
         # Alarms should be ordered by priority. The first one is the most important.
         # List is subjective, for more information please refer to README.md file.
         self.alarms_priority_order = (
-            Alarms.ES_PRESSED,    # Emergency button pressed
-            Alarms.TANK_TOO_HIGH, # Tank level too high
-            Alarms.TEMP_TOO_HIGH, # Fluid temperature too high
-            Alarms.TANK_TOO_LOW,  # Tank level too low
-            Alarms.TEMP_TOO_LOW,  # Fluid temperature too low
-            Alarms.DOOR_OPEN,     # Discharging door open
+            Alarms.ES_PRESSED,    # (A5) Emergency button pressed
+            Alarms.TANK_TOO_HIGH, # (A0) Tank level too high
+            Alarms.TEMP_TOO_HIGH, # (A2) Fluid temperature too high
+            Alarms.TANK_TOO_LOW,  # (A1) Tank level too low
+            Alarms.TEMP_TOO_LOW,  # (A3) Fluid temperature too low
+            Alarms.DOOR_OPEN,     # (A4) Discharging door open
         )
 
-        self.step = Steps.STOP # Start with system stopped, as indicated in the original code
+        self.step = Steps.STOP                 # Start with system stopped, as indicated in the original code
         self.last_low_low_sensor_state = False # Helper variable to detect falling edge of low level sensor
 
-        self.transitions = Transitions(self) # Initialize transitions object.
+        self.transitions = Transitions(self)                       # Initialize transitions object.
         self.common_operations_handler = PLCCommonOperations(self) # Initialize common operations object.
-        self.trip = False # Error mode when True, normal operation when False 
+        self.trip = False                                          # Error mode when True, normal operation when False 
 
     async def update_inputs(self):
         # Update digital input readings from the OPC UA server
@@ -123,7 +122,7 @@ class PLCSimulator:
         )
         # Discharging door open
         self.alarms[Alarms.DOOR_OPEN]["Active"] = (
-            not self.digital_inputs[DigitalInputs.DISCHARG_GT_CLOSED]
+            not self.digital_inputs[DigitalInputs.DISCHARGING_GATE_CLOSED]
         )
         # Emergency button pressed
         self.alarms[Alarms.ES_PRESSED]["Active"] = (
@@ -160,7 +159,7 @@ class PLCSimulator:
         """
         for alarm_id in self.alarms_priority_order:
             alarm = self.alarms[alarm_id]
-            if alarm["Active"]:
+            if alarm["Status"]:
                 return alarm_id
         return None
             
@@ -186,6 +185,9 @@ class PLCSimulator:
         if alarm_id:
             self.trip = True
             self.step = self.map_alarm_to_step[alarm_id]
+        elif self.trip:
+            self.trip = False
+            self.step = Steps.STOP
 
     async def execute_control_logic(self):
         """
@@ -214,7 +216,7 @@ class PLCSimulator:
                     if self.step == Steps.ERROR_A0:
                         # Handle Tank Level Too High Alarm
                         self.common_operations_handler.stop_system()
-                        self.digital_outputs[DigitalOutputs.DISCHARGING_GATE_OPEN] = True
+                        self.digital_outputs[DigitalOutputs.DISCHARGING_GATE_CLOSE] = False
 
                     elif self.step == Steps.ERROR_A1:
                         # Handle Tank Level Too Low Alarm
@@ -231,10 +233,10 @@ class PLCSimulator:
                     elif self.step == Steps.ERROR_A4:
                         # Handle Discharging Door Open Alarm 
                         self.common_operations_handler.stop_system()
-                    
+
                     elif self.step == Steps.ERROR_A5:
                         self.common_operations_handler.stop_system()
-                        self.digital_outputs[DigitalOutputs.DISCHARGING_GATE_OPEN] = True
+                        self.digital_outputs[DigitalOutputs.DISCHARGING_GATE_CLOSE] = False
                 else:
                     # Normal operation logic - executed only if no alarm status is True
                     if self.transitions.stop_requested():
@@ -278,7 +280,7 @@ class PLCSimulator:
                             self.digital_outputs[DigitalOutputs.DISCHARGING_VALVE_OPEN] = True
                 
                 if self.step != prev_step:
-                    print(f" --- state changed to {self.step} --- ")
+                    print(f"State changed to -> {self.step}")
                     prev_step = self.step
 
                 # Implement output logic:
@@ -295,7 +297,6 @@ class PLCSimulator:
             await self.server.stop()
             print("Stopping server")
 
-    
     async def set_opcua_server(self):
         self.server = Server()
         await self.server.init() 
@@ -333,8 +334,7 @@ class PLCSimulator:
 
     async def stop(self):
         await self.server.stop()
-        
-    
+
     async def main(self):
         # Set OPC UA server
         await self.set_opcua_server()
@@ -348,6 +348,3 @@ if __name__ == "__main__":
         asyncio.run(plc.main())
     except KeyboardInterrupt:
         print("PLC stopped")
-
-
-

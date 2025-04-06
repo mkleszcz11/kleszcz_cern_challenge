@@ -5,23 +5,10 @@ if TYPE_CHECKING:
 from enum import Enum, auto
 from src.plc_io_definitions import DigitalInputs, AnalogInputs, DigitalOutputs
 
-
-class Alarms(Enum):
-    """
-    Map the alarms to something a bit more readable.
-    Encapsulate the logic.
-    """
-    TANK_TOO_HIGH = "A0"
-    TANK_TOO_LOW = "A1"
-    TEMP_TOO_HIGH = "A2"
-    TEMP_TOO_LOW = "A3"
-    DOOR_OPEN = "A4"
-    ES_PRESSED = "A5"
-
-
 class Steps(Enum):
     """
     Enum class to define the States of the system.
+    Improves readability and scalability of the code.
     """
     # Normal operation states
     STOP = auto() # Default state
@@ -39,12 +26,9 @@ class Steps(Enum):
     ERROR_A4 = auto() # Discharging Door Open Alarm 
     ERROR_A5 = auto() # Emergency Button Pressed Alarm 
 
-
 class Transitions:
-    """
-    This class exists only to improve readability of the code.
-    Without this I got a bit lost.
-    """
+    # This class exists only to improve readability of the code.
+    # Without this I got lost a bit.
     def __init__(self, plc: "PLCSimulator"):
         self.plc = plc
 
@@ -66,39 +50,24 @@ class Transitions:
                 >= self.plc.DESIRED_TEMPERATURE)
 
     def tank_back_to_low_level(self) -> bool:
-        return not self.plc.digital_inputs[DigitalInputs.L_LVL_SENSOR]
+        return self.plc.digital_inputs[DigitalInputs.L_LVL_SENSOR]
 
     def stop_requested(self) -> bool:
         return self.plc.digital_inputs[DigitalInputs.STOP_BUTTON]
-
-
+    
 class PLCCommonOperations:
     """
     This class contains common operations that are used in the PLC.
-    It encapsulates the logic.
+    It is used to avoid code duplication and improve readability.
     """
     def __init__(self, plc: "PLCSimulator"):
         self.plc = plc
 
     def stop_system(self):
         """
-        Stop the system.
+        Stop the system, but do not trigger errors.
         """
         self.plc.digital_outputs[DigitalOutputs.FILLING_VALVE_OPEN] = False
         self.plc.digital_outputs[DigitalOutputs.HEATING_ON] = False
         self.plc.digital_outputs[DigitalOutputs.DISCHARGING_VALVE_OPEN] = False
 
-    def stop_heating_open_gate(self):
-        """
-        Stop heating and open the discharging gate.
-        """
-        self.plc.digital_outputs[DigitalOutputs.HEATING_ON] = False
-        self.plc.digital_outputs[DigitalOutputs.DISCHARGING_GATE_CLOSE] = True
-        
-    def stop_fluid_flow_open_gate(self):
-        """
-        Stop fluid flow and open the discharging gate.
-        """
-        self.plc.digital_outputs[DigitalOutputs.FILLING_VALVE_OPEN] = False
-        self.plc.digital_outputs[DigitalOutputs.DISCHARGING_VALVE_OPEN] = False
-        self.plc.digital_outputs[DigitalOutputs.DISCHARGING_GATE_CLOSE] = False

@@ -1,5 +1,6 @@
 from enum import Enum, auto
 
+
 class DigitalInputs(Enum):
     """
     Enum class to map the Digital Inputs of the system to the PLC Inputs.
@@ -18,13 +19,15 @@ class DigitalInputs(Enum):
     L_LVL_SENSOR = "DI6"       # Low level sensor
     H_LVL_SENSOR = "DI7"       # High level sensor
     HH_LVL_SENSOR = "DI8"      # High high alarm
-    DISCHARG_GT_CLOSED = "DI9" # Discharging gate closed
+    DISCHARGING_GATE_CLOSED = "DI9" # Discharging gate closed
+
 
 class AnalogInputs(Enum):
     """
     Enum class to map the Analog Inputs of the system to the PLC Inputs.
     """
     TEMPERATURE_SENSOR = "AI0" # Temperature sensor
+
  
 class DigitalOutputs(Enum):
     """
@@ -34,4 +37,4 @@ class DigitalOutputs(Enum):
     FILLING_VALVE_OPEN = "DQ0"     # Filling valve
     DISCHARGING_VALVE_OPEN = "DQ1" # Discharging valve
     HEATING_ON = "DQ2"             # Heating element
-    DISCHARGING_GATE_OPEN = "DQ3"  # Discharging gate
+    DISCHARGING_GATE_CLOSE = "DQ3"  # Discharging gate

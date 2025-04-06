@@ -27,7 +27,7 @@ class PLCClient:
     async def set_object_pulse(self, name):
         myvar = await self.myobj.get_child(f"{self.idx}:{name}")
         await myvar.write_value(True)
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.1)
         await myvar.write_value(False)
         
     async def disconnect(self):
