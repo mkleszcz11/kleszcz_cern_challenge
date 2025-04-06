@@ -10,7 +10,7 @@ from tests.helpers_test import (
     assert_all_alarms_off,
     DEFAULT_TIMEOUT,
     move_plc_to_desired_step,
-    press_start_run_stop,
+    press_buttons_at_once,
     reset_plc_to_clean_stop_state,
     assert_proper_alarm_a4_reaction,
 )
@@ -31,7 +31,7 @@ async def simulate_and_validate_a4(plc: PLCClient):
     Simulate and validate alarm A4:
     1. Trigger open discharging door sensor
     2. Validate alarm and system shutdown
-    3. Inputs ignored
+    3. Pressing buttons should have no effect (excluding ES)
     4. Reset fails if condition persists
     5. Clear input
     6. Reset clears alarm
@@ -42,7 +42,7 @@ async def simulate_and_validate_a4(plc: PLCClient):
     await assert_proper_alarm_a4_reaction(plc)
     assert await plc.get_alarm_status(Alarms.DOOR_OPEN.value) == True
 
-    await press_start_run_stop(plc)
+    await press_buttons_at_once(plc)
     await asyncio.sleep(DEFAULT_TIMEOUT)
     await assert_proper_alarm_a4_reaction(plc)
 

@@ -10,7 +10,7 @@ from tests.helpers_test import (
     assert_all_alarms_off,
     DEFAULT_TIMEOUT,
     move_plc_to_desired_step,
-    press_start_run_stop,
+    press_buttons_at_once,
     reset_plc_to_clean_stop_state,
     assert_proper_alarm_a0_reaction,
 )
@@ -38,7 +38,7 @@ async def simulate_and_validate_a0(plc: PLCClient):
     Test cases are used to set up the scenario and then they are calling this function.
     1. Trigger HH level
     2. Validate outputs and alarm state
-    3. Pressing START, RUN, STOP buttons should have no effect
+    3. Pressing buttons should have no effect (excluding ES)
     4. Reset attempt while condition persists (should not clear alarm)
     5. Clear condition
     6. Reset again (should succeed)
@@ -52,7 +52,7 @@ async def simulate_and_validate_a0(plc: PLCClient):
     assert await plc.get_alarm_status(Alarms.TANK_TOO_HIGH.value) == True
 
     # 3. Inputs should be ignored
-    await press_start_run_stop(plc)
+    await press_buttons_at_once(plc)
     await asyncio.sleep(DEFAULT_TIMEOUT)
     await assert_proper_alarm_a0_reaction(plc)
 

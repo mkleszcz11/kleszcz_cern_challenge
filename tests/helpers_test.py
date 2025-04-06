@@ -86,6 +86,56 @@ async def assert_proper_alarm_a5_reaction(plc: PLCClient):
     assert await plc.get_object_value(DigitalOutputs.HEATING_ON.value) == False
     assert await plc.get_object_value(DigitalOutputs.DISCHARGING_GATE_CLOSE.value) == False
 
+async def assert_system_stopped(plc: PLCClient):
+    """
+    Assert that the system is stopped. We do not consider discharge gate, rest should be
+    inactive/closed.
+    """
+    assert await plc.get_object_value(DigitalOutputs.FILLING_VALVE_OPEN.value) == False
+    assert await plc.get_object_value(DigitalOutputs.HEATING_ON.value) == False
+    assert await plc.get_object_value(DigitalOutputs.DISCHARGING_VALVE_OPEN.value) == False
+
+async def assert_all_buttons_off(plc: PLCClient):
+    """
+    Assert all buttons are in 'off' state.
+    """
+    assert await plc.get_object_value(DigitalInputs.START_BUTTON.value) == False
+    assert await plc.get_object_value(DigitalInputs.RUN_BUTTON.value) == False
+    assert await plc.get_object_value(DigitalInputs.STOP_BUTTON.value) == False
+    assert await plc.get_object_value(DigitalInputs.ES_BUTTON.value) == False
+    assert await plc.get_object_value(DigitalInputs.RST_BUTTON.value) == False
+        
+
+async def assert_lvl_sensor_states(plc: PLCClient, LL: bool, L: bool, H: bool, HH: bool):
+    """
+    Assert the states of the level sensors.
+    """
+    assert await plc.get_object_value(DigitalInputs.LL_LVL_SENSOR.value) == LL
+    assert await plc.get_object_value(DigitalInputs.L_LVL_SENSOR.value) == L
+    assert await plc.get_object_value(DigitalInputs.H_LVL_SENSOR.value) == H
+    assert await plc.get_object_value(DigitalInputs.HH_LVL_SENSOR.value) == HH
+
+
+async def assert_device_state_changed_only(
+    plc: PLCClient,
+    previous_state: dict,
+    expected_changes: dict,
+):
+    """
+    Assert that only the expected outputs/inputs changed.
+
+    Args:
+        plc: PLC client
+        previous_state: Full snapshot of relevant state before the action.
+        expected_changes: Subset of keys with expected new values.
+    """
+    for key, old_value in previous_state.items():
+        current_value = await plc.get_object_value(key.value)
+        expected_value = expected_changes.get(key, old_value)
+        assert current_value == expected_value, (
+            f"{key.name} changed unexpectedly: expected {expected_value}, got {current_value}"
+        )
+
 
 async def set_default_inputs(plc: PLCClient):
     """
@@ -101,15 +151,24 @@ async def set_default_inputs(plc: PLCClient):
         tg.create_task(plc.set_object_value(DigitalInputs.ES_BUTTON.value, False))
 
 
-async def press_start_run_stop(plc: PLCClient):
+async def press_buttons_at_once(plc: PLCClient,
+                                run_bt: bool = True,
+                                stop_bt: bool = True,
+                                reset_bt: bool = True,
+                                start_bt: bool = True):
     """
-    Press START, RUN, and STOP buttons in sequence.
-    Useful for asserting these inputs are ignored during alarm states.
+    Press all specified buttons at once. Do not consider the ES, as it would
+    override everything else.
     """
     async with asyncio.TaskGroup() as tg:
-        tg.create_task(plc.set_object_pulse(DigitalInputs.START_BUTTON.value))
-        tg.create_task(plc.set_object_pulse(DigitalInputs.RUN_BUTTON.value))
-        tg.create_task(plc.set_object_pulse(DigitalInputs.STOP_BUTTON.value))
+        if run_bt:
+            tg.create_task(plc.set_object_pulse(DigitalInputs.RUN_BUTTON.value))
+        if stop_bt:
+            tg.create_task(plc.set_object_pulse(DigitalInputs.STOP_BUTTON.value))
+        if reset_bt:
+            tg.create_task(plc.set_object_pulse(DigitalInputs.RST_BUTTON.value))
+        if start_bt:
+            tg.create_task(plc.set_object_pulse(DigitalInputs.START_BUTTON.value))
 
 
 async def reset_plc_to_clean_stop_state(plc: PLCClient):
@@ -163,6 +222,8 @@ async def move_plc_to_desired_step(plc: PLCClient, step: Steps):
     Move the PLC to the desired step from normal operation. PLC follows GRAFCET,
     so it is needed to pass all of the intermediate steps to reach the desired one.
     Assumes PLC starts from STOP with no alarms, tank is empty, discharge gate closed.
+    
+    This is not an exhaustive test for state transitions, this is tested in test_aa_grafcet.py.
     """
     # STOP
     if step == Steps.STOP:

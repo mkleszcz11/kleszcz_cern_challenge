@@ -10,7 +10,7 @@ from tests.helpers_test import (
     assert_all_alarms_off,
     DEFAULT_TIMEOUT,
     move_plc_to_desired_step,
-    press_start_run_stop,
+    press_buttons_at_once,
     reset_plc_to_clean_stop_state,
     assert_proper_alarm_a2_reaction,
 )
@@ -32,7 +32,7 @@ async def simulate_and_validate_a2(plc: PLCClient):
     Steps:
     1. Raise temp above MAX
     2. Validate alarm and outputs
-    3. Pressing inputs ignored
+    3. Pressing buttons should have no effect (excluding ES)
     4. Reset (fail, condition persists)
     5. Lower temp
     6. Reset again (succeed)
@@ -46,7 +46,7 @@ async def simulate_and_validate_a2(plc: PLCClient):
     assert await plc.get_alarm_status(Alarms.TEMP_TOO_HIGH.value) is True
 
     # 3. Try to press start, run, stop - should be no reaction
-    await press_start_run_stop(plc)
+    await press_buttons_at_once(plc)
     await asyncio.sleep(DEFAULT_TIMEOUT)
     await assert_proper_alarm_a2_reaction(plc)
 

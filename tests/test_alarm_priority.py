@@ -7,7 +7,6 @@ from src.plc_io_definitions import AnalogInputs, DigitalInputs, DigitalOutputs
 from src.plc_utils import Alarms, Steps
 from tests.helpers_test import (
     DEFAULT_TIMEOUT,
-    press_start_run_stop,
     move_plc_to_desired_step,
     reset_plc_to_clean_stop_state,
     assert_proper_alarm_a0_reaction,

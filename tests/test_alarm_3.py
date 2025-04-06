@@ -10,7 +10,7 @@ from tests.helpers_test import (
     assert_all_alarms_off,
     DEFAULT_TIMEOUT,
     move_plc_to_desired_step,
-    press_start_run_stop,
+    press_buttons_at_once,
     reset_plc_to_clean_stop_state,
     assert_proper_alarm_a3_reaction,
 )
@@ -32,7 +32,7 @@ async def simulate_and_validate_a3(plc: PLCClient):
     Steps:
     1. Lower temp below MIN
     2. Validate alarm and outputs
-    3. Inputs ignored
+    3. Pressing buttons should have no effect (excluding ES)
     4. Reset fails if still low
     5. Raise temp
     6. Reset succeeds
@@ -46,7 +46,7 @@ async def simulate_and_validate_a3(plc: PLCClient):
     assert await plc.get_alarm_status(Alarms.TEMP_TOO_LOW.value) is True
 
     # 3. Inputs should have no effect
-    await press_start_run_stop(plc)
+    await press_buttons_at_once(plc)
     await asyncio.sleep(DEFAULT_TIMEOUT)
     await assert_proper_alarm_a3_reaction(plc)
 
