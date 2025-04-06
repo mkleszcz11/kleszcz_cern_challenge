@@ -1,0 +1,8 @@
+#!/home/marcin/Desktop/cern_challenge_industrial_control_systems/kleszcz_cern_challenge/env/bin/python3.11
+# -*- coding: utf-8 -*-
+import re
+import sys
+from asyncua.tools import uaread
+if __name__ == '__main__':
+    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.exit(uaread())

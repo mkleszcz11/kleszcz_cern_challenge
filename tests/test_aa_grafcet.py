@@ -38,8 +38,7 @@ async def test_start_prefilling(plc: PLCClient):
 @pytest.mark.asyncio
 async def test_prefilling_ready(plc: PLCClient):
     # Simulate low level reached
-    ...
-
+    pass
 # Test RUN button pressed
 
 
