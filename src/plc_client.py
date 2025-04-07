@@ -41,4 +41,3 @@ class PLCClient:
         self.myobj = await self.client.nodes.root.get_child(
             ["0:Objects", f"{self.idx}:myPLC"]
         )
-            
